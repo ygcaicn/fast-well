@@ -54,7 +54,7 @@ class Settings(BaseSettings):
         BASE_DIR, "app/templates/RubikWetPaint-Regular.ttf")
 
     SUPERUSER: EmailStr = "root@admin.com"
-    SUPERUSER_PASSWORD: str = "root"
+    SUPERUSER_PASSWORD: str = "123456"
 
     EMAILS_FROM_NAME: str = os.environ.get("EMAILS_FROM_NAME")
     EMAILS_FROM_EMAIL: str = os.environ.get("EMAILS_FROM_EMAIL")
