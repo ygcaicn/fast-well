@@ -1,15 +1,24 @@
 {
-  "python.linting.pylintEnabled": true,
-  "python.linting.enabled": true,
-  "python.linting.lintOnSave": true,
-  "editor.formatOnSave": true,
-  "python.linting.pylintArgs": [
-    "--rcfile=${workspaceFolder}/.pylintrc",
-    "--disable=invalid-name,missing-module-docstring"
-  ],
+  "editor.tabSize": 2,
+  "editor.formatOnSave": false,
   "python.envFile": "${workspaceFolder}/.vscode/.env",
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
   "[python]": {
-    "editor.defaultFormatter": "ms-python.autopep8"
+    "editor.defaultFormatter": "ms-python.autopep8",
+    "editor.formatOnSave": true
   },
-  "python.formatting.provider": "autopep8"
+  "files.exclude": {
+    "**/.cache": true,
+    "**/.editorconfig": true,
+    "**/.idea": true,
+    "**/tmp": true,
+    "**/.git": true,
+    "**/.svn": true,
+    "**/.hg": true,
+    "**/CVS": true,
+    "**/.DS_Store": true,
+    "**/__pycache__":true
+  },
+  "pylint.args": [
+  ],
 }

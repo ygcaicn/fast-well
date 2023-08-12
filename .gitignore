@@ -169,3 +169,5 @@ cython_debug/
 *.db-wal
 migrations/
 .vscode/bookmarks.json
+logs/
+# app/logs/app_main_debug.log.1
