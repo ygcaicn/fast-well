@@ -2,8 +2,14 @@ from aiocache.serializers import PickleSerializer
 from aiocache import caches
 import redis.asyncio as redis
 
-cache = redis.from_url("redis://localhost",
-                       encoding="utf-8", decode_responses=True)
+
+def get_cache():
+    return redis.from_url("redis://localhost",
+                          encoding="utf-8", decode_responses=True)
+
+
+cache = get_cache()
+
 cache_config = {
     "default": {
         "cache": "aiocache.RedisCache",

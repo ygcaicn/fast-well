@@ -95,7 +95,7 @@ class User(BaseDBModel, BaseCreatedUpdatedAtModel, UUIDDBModel):
 
     @classmethod
     async def create(cls, user: BaseUserCreate) -> "User":
-        user_dict = user.model_dump()
+        user_dict = user.model_dump(exclude_unset=True)
         password_hash = password.get_password_hash(password=user.password)
         model = cls(**user_dict, password_hash=password_hash)
         await model.save()

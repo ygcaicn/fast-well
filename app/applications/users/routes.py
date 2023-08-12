@@ -1,10 +1,13 @@
 from fastapi import BackgroundTasks
+from app.core.auth.deps import get_current_active_superuser, get_current_active_user, permissions_required
 
-from app.core.auth.utils.contrib import get_current_active_superuser, send_new_account_email, get_current_active_user, has_permissions
+from app.core.auth.utils.contrib import send_new_account_email
 from app.core.auth.utils.password import get_password_hash
 
+from app.core.base.schemas import ResponseData
+
 from app.applications.users.models import User
-from app.applications.users.schemas import BaseUserOut, BaseUserCreate, BaseUserUpdate
+from app.applications.users.schemas import BaseUserOut, BaseUserCreate, BaseUserUpdate, BaseUserMeOut
 
 from typing import List
 
@@ -22,7 +25,7 @@ router = APIRouter(tags=['users'])
 async def read_users(
     skip: int = 0,
     limit: int = 100,
-    current_user: User = Depends(has_permissions(["users_read"])),
+    current_user: User = Depends(permissions_required(["users_read"])),
 ):
     """
     Retrieve users.
@@ -61,7 +64,7 @@ async def create_user(
     return created_user
 
 
-@router.put("/me", response_model=BaseUserOut, status_code=200)
+@router.put("/me", response_model=ResponseData[BaseUserOut], status_code=200)
 async def update_user_me(
     user_in: BaseUserUpdate,
     current_user: User = Depends(get_current_active_user)
@@ -77,17 +80,18 @@ async def update_user_me(
     if user_in.email is not None:
         current_user.email = user_in.email
     await current_user.save()
-    return current_user
+
+    return {"data": current_user}
 
 
-@router.get("/me", response_model=BaseUserOut, status_code=200,)
+@router.get("/me", response_model=ResponseData[BaseUserMeOut], status_code=200,)
 def read_user_me(
     current_user: User = Depends(get_current_active_user),
 ):
     """
     Get current user.
     """
-    return current_user
+    return {"data": current_user}
 
 
 @router.get("/{user_id}", response_model=BaseUserOut, status_code=200)

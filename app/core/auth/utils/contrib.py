@@ -1,24 +1,18 @@
 import logging
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Optional, List, Union
+from typing import Optional
 
 import emails
 from jose import JWTError, jwt
 from emails.template import JinjaTemplate
-from fastapi import HTTPException, Security
-from fastapi.security import OAuth2PasswordBearer
-from starlette.status import HTTP_403_FORBIDDEN
 
 from app.applications.users.models import User
-from app.core.auth.schemas import JWTTokenPayload, CredentialsSchema
 from app.core.auth.utils import password
-from app.core.auth.utils.jwt import ALGORITHM
 from app.core.config import settings
-from app.core.cache import model_cache
+from app.core.auth.schemas import CredentialsSchema
 
-password_reset_jwt_subject = "passwordreset"
-reusable_oauth2 = OAuth2PasswordBearer(tokenUrl="/api/auth/login/access-token")
+PASSWORD_RESET_JWT_SUBJECT = "passwordreset"
 
 
 def send_email(email_to: str, subject_template="", html_template="", environment={}):
@@ -44,7 +38,7 @@ def send_email(email_to: str, subject_template="", html_template="", environment
 
 def send_reset_password_email(email_to: str, username: str, token: str):
     project_name = settings.PROJECT_NAME
-    subject = f"{project_name} - Password recovery for user {email}"
+    subject = f"{project_name} - Password recovery for user {email_to}"
     with open(Path(settings.EMAIL_TEMPLATES_DIR) / "password_reset.html") as f:
         template_str = f.read()
     if hasattr(token, "decode"):
@@ -117,7 +111,7 @@ def generate_password_reset_token(email):
     now = datetime.utcnow()
     expires = now + delta
     encoded_jwt = jwt.encode(
-        {"exp": expires, "nbf": now, "sub": password_reset_jwt_subject, "email": email},
+        {"exp": expires, "nbf": now, "sub": PASSWORD_RESET_JWT_SUBJECT, "email": email},
         settings.SECRET_KEY,
         algorithm="HS256",
     )
@@ -128,9 +122,9 @@ def verify_password_reset_token(token) -> Optional[str]:
     try:
         decoded_token = jwt.decode(
             token, settings.SECRET_KEY, algorithms=["HS256"])
-        assert decoded_token["sub"] == password_reset_jwt_subject
+        assert decoded_token["sub"] == PASSWORD_RESET_JWT_SUBJECT
         return decoded_token["email"]
-    except JWTError as e:
+    except JWTError:
         return None
 
 
@@ -153,61 +147,21 @@ def verify_account_confirm_token(token) -> Optional[tuple]:
             token, settings.SECRET_KEY, algorithms=["HS256"])
         assert decoded_token["sub"] == 'account_confirm'
         return decoded_token["user_id"], decoded_token["email"]
-    except JWTError as e:
-        return None
-
-
-async def get_current_user(token: str = Security(reusable_oauth2)) -> Optional[User]:
-    try:
-        payload = jwt.decode(token, settings.SECRET_KEY,
-                             algorithms=[ALGORITHM])
-        token_data = JWTTokenPayload(**payload)
     except JWTError:
-        raise HTTPException(
-            status_code=HTTP_403_FORBIDDEN, detail="Could not validate credentials"
-        )
-
-    try:
-        cached_user = await model_cache.get(f"user:{token_data.user_id}")
-    except Exception:
-        cached_user = None
-
-    if cached_user:
-        user = cached_user
-    else:
-        try:
-            user = await User.get(id=token_data.user_id).prefetch_related('groups')
-        except Exception:
-            user = None
-        if user:
-            await model_cache.set(f"user:{token_data.user_id}", user, 600)
-
-    if not user:
-        raise HTTPException(status_code=404, detail="User not found")
-    return user
-
-
-async def get_current_active_user(current_user: User = Security(get_current_user)):
-    if not current_user.is_active:
-        raise HTTPException(status_code=400, detail="Inactive user")
-    return current_user
-
-
-async def get_current_active_superuser(current_user: User = Security(get_current_user)):
-    if not current_user.is_superuser:
-        raise HTTPException(
-            status_code=400, detail="The user doesn't have enough privileges"
-        )
-    return current_user
+        return None
 
 
 async def authenticate(credentials: CredentialsSchema) -> Optional[User]:
+    print(credentials)
+    user = None
     if credentials.email:
         user = await User.get_by_email(credentials.email)
-    elif credentials.username:
+
+    if user is None and credentials.username:
         user = await User.get_by_username(credentials.username)
-    else:
-        return None
+
+    if user is None and credentials.username:
+        user = await User.get_by_email(credentials.username)
 
     if user is None:
         return None
@@ -223,20 +177,3 @@ async def authenticate(credentials: CredentialsSchema) -> Optional[User]:
         user.password_hash = updated_password_hash
         await user.save()
     return user
-
-
-def has_permissions(permissions: Optional[List[str]] = None):
-    async def user_has_permission(user: User = Security(get_current_user)) -> User:
-        print(user.permissions)
-        if user.is_superuser:
-            return user
-        if not permissions:
-            return user
-
-        for need_permission in permissions:
-            if need_permission not in user.permissions:
-                raise HTTPException(status_code=403, detail="没有权限")
-
-        return user
-
-    return user_has_permission

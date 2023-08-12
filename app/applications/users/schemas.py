@@ -6,18 +6,18 @@ from pydantic import BaseModel, EmailStr, UUID4, validator
 
 
 class BaseProperties(BaseModel):
-    @validator("hashed_id", pre=True, always=True, check_fields=False)
-    def default_hashed_id(cls, v):
-        return v or uuid.uuid4()
+    # @validator("hashed_id", pre=True, always=True, check_fields=False)
+    # def default_hashed_id(cls, v):
+    #     return v or uuid.uuid4()
 
     def create_update_dict(self):
-        return self.dict(
+        return self.model_dump(
             exclude_unset=True,
             exclude={"id", "is_superuser", "is_active"},
         )
 
     def create_update_dict_superuser(self):
-        return self.dict(exclude_unset=True, exclude={"id"})
+        return self.model_dump(exclude_unset=True, exclude={"id"})
 
 
 class BaseUser(BaseProperties):
@@ -29,6 +29,8 @@ class BaseUser(BaseProperties):
     is_active: Optional[bool] = True
     is_superuser: Optional[bool] = False
     created_at: Optional[datetime]
+    avatar: Optional[str]
+    roles: Optional[list] = ['user', 'admin', "ADMIN"]
 
 
 class BaseUserCreate(BaseProperties):
@@ -54,6 +56,14 @@ class BaseUserDB(BaseUser):
     password_hash: str
     updated_at: datetime
     last_login: Optional[datetime]
+
+    class Config:
+        from_attributes = True
+
+
+class BaseUserMeOut(BaseUser):
+    id: int
+    permissions: Optional[set] = None
 
     class Config:
         from_attributes = True

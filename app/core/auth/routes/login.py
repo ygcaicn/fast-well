@@ -1,87 +1,50 @@
-from typing import Annotated
 from datetime import timedelta
-from typing import Optional, TypeVar, Generic, Union
-from fastapi import APIRouter, Body, HTTPException, BackgroundTasks, Depends, Form
+from typing import Union, Annotated
+
+from fastapi import APIRouter, Body, HTTPException, BackgroundTasks, Depends
+from fastapi.security import OAuth2PasswordRequestForm
+from fastapi_limiter.depends import RateLimiter
 
 from app.applications.users.models import User
 from app.applications.users.utils import update_last_login
-from app.core.auth.schemas import JWTToken, CredentialsSchema, Msg, Captcha, CaptchaVerify, ResponseData
-from app.core.auth.utils.contrib import (generate_password_reset_token, send_reset_password_email,
-                                         verify_password_reset_token, authenticate, verify_account_confirm_token
-                                         )
+from app.core.auth.deps import captcha_verify_required
+from app.core.auth.schemas import (JWTToken, Msg, JWTTokenPayload
+                                   Captcha, CaptchaVerify)
+from app.core.auth.utils.contrib import (generate_password_reset_token,
+                                         send_reset_password_email,
+                                         verify_password_reset_token,
+                                         authenticate)
 from app.core.auth.utils.jwt import create_access_token
 from app.core.auth.utils.password import get_password_hash
 from app.core.auth.utils.captcha import get_captcha, verify_captcha
+from app.core.base.schemas import ResponseData
 from app.core.config import settings
-
-from fastapi_limiter.depends import RateLimiter
-
-from fastapi.security import (
-    OAuth2PasswordBearer,
-    OAuth2PasswordRequestForm,
-    SecurityScopes,
-)
+from app.core.auth.deps import authentication_required
 
 router = APIRouter()
 
 
-@router.post("/")
-async def login(username_or_email: str = Form(), password: str = Form(), captcha_id: str = Form(), captcha_value: str = Form()):
-    captcha_verifyd = await verify_captcha(captcha_value, captcha_id)
-    captcha_verifyd = await verify_captcha(captcha_value, captcha_id)
-    if not captcha_verifyd:
-        raise HTTPException(
-            status_code=400, detail="Incorrect captcha or captcha expired")
-    try:
-        user = await authenticate(CredentialsSchema.model_validate(form_data))
-    except Exception as e:
-        print(e)
-        raise HTTPException(
-            status_code=400, detail="Incorrect email or password")
-
-    if user:
-        await update_last_login(user.id)
-    elif not user:
-        raise HTTPException(
-            status_code=400, detail="Incorrect email or password")
-    elif not user.is_active:
-        raise HTTPException(status_code=400, detail="Inactive user")
-    access_token_expires = timedelta(
-        seconds=settings.JWT_EXPIRE)
-
+@router.post("/", response_model=ResponseData[JWTToken])
+async def login(user: User = Depends(authentication_required), verified: bool = Depends(captcha_verify_required)):
+    assert verified, "Invalid captcha"
+    access_token_expires = timedelta(seconds=settings.JWT_EXPIRE)
     return {
         "code": 0,
         "data": {
-            "access_token": create_access_token(
-                data={"user_id": user.id}, expires_delta=access_token_expires
-            ),
+            "access_token": create_access_token(data={"user_id": user.id},
+                                                expires_delta=access_token_expires),
             "token_type": "bearer",
-        }
+        },
+        "msg": "Login successful"
     }
 
 
-@router.post("/access-token")
-async def login_access_token(form_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
-    try:
-        user = await authenticate(CredentialsSchema.model_validate(form_data))
-    except Exception as e:
-        raise HTTPException(
-            status_code=400, detail="Incorrect email or password")
-
-    if user:
-        await update_last_login(user.id)
-    elif not user:
-        raise HTTPException(
-            status_code=400, detail="Incorrect email or password")
-    elif not user.is_active:
-        raise HTTPException(status_code=400, detail="Inactive user")
-    access_token_expires = timedelta(
-        seconds=settings.JWT_EXPIRE)
-
+@router.post("/access-token", response_model=JWTToken)
+async def login_access_token(user=Depends(authentication_required)):
+    access_token_expires = timedelta(seconds=settings.JWT_EXPIRE)
     return {
-        "access_token": create_access_token(
-            data={"user_id": user.id}, expires_delta=access_token_expires
-        ),
+        "access_token": create_access_token(data={"user_id": user.id},
+                                            expires_delta=access_token_expires),
         "token_type": "bearer",
     }
 
@@ -126,7 +89,7 @@ async def reset_password(token: str = Body(...), new_password: str = Body(...)):
     return {"msg": "Password updated successfully"}
 
 
-@router.get("/captcha", tags=["auth"], response_model=ResponseData[Captcha], dependencies=[Depends(RateLimiter(times=50, seconds=300))])
+@router.get("/captcha", response_model=ResponseData[Captcha], dependencies=[Depends(RateLimiter(times=50, seconds=300))])
 async def captcha():
     """
     Get captcha
@@ -142,7 +105,7 @@ async def captcha():
             }
 
 
-@router.post("/captcha", tags=["auth"], response_model=Union[ResponseData[int], ResponseData[Captcha]], dependencies=[Depends(RateLimiter(times=10, seconds=60))])
+@router.post("/captcha", response_model=Union[ResponseData[int], ResponseData[Captcha]], dependencies=[Depends(RateLimiter(times=10, seconds=60))])
 async def captcha_verify(verify: CaptchaVerify):
     verifyd = await verify_captcha(verify.captcha_id, verify.value)
     if verifyd:

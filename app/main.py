@@ -1,10 +1,9 @@
-from fastapi_limiter import FastAPILimiter
-import redis.asyncio as redis
 from fastapi import FastAPI
+from fastapi_limiter import FastAPILimiter
 from app.core.exceptions import SettingNotFound
 from app.core.init_app import (configure_logging, init_middlewares, register_db,
-                               register_exceptions, register_routers, create_super_user)
-from app.core.cache import cache
+                               register_exceptions, register_routers)
+from app.core.cache import get_cache
 
 try:
     from app.core.config import settings
@@ -27,5 +26,4 @@ register_routers(app)
 
 @app.on_event("startup")
 async def startup():
-    await FastAPILimiter.init(cache)
-    await create_super_user()
+    await FastAPILimiter.init(get_cache())

@@ -8,12 +8,12 @@ import base64
 from app.core.config import settings
 from app.core.cache import cache
 
-font = ImageFont.FreeTypeFont(settings.CAPTCHA_FONT_PATH, size=30)
+font = ImageFont.FreeTypeFont(settings.CAPTCHA_FONT_PATH, size=25)
 
 
 def create_captcha(text):
     # 创建一个Image对象
-    width, height = 150, 50
+    width, height = 120, 48
     image = Image.new('RGB', (width, height), color=(255, 255, 255))
 
     # 创建一个Draw对象

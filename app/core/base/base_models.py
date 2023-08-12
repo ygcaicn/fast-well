@@ -2,7 +2,6 @@ import uuid
 from tortoise import models
 from tortoise import fields
 from app.core.cache import model_cache
-import pickle
 
 
 class CacheModelMixin:
