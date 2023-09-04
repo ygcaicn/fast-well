@@ -3,7 +3,8 @@
 import logging
 from app.core.config import settings
 from app.applications.users.schemas import BaseUserCreate
-from app.applications.users.models import User
+from app.applications.users.models import User, Group
+from app.applications.system.models import Role
 from app.core.init_app import TORTOISE_ORM
 
 from tortoise import Tortoise, run_async
@@ -31,16 +32,24 @@ async def create_super_user():
                     'password': settings.SUPERUSER_PASSWORD,
                 }
             )
-            created_user = await User.create(db_user)
-            created_user.is_superuser = True
-            await created_user.save()
+            user = await User.create(db_user)
+            user.is_superuser = True
 
-            user = create_super_user
-            logging.info(f'Created superuser: {created_user}')
+            group, _ = await Group.get_or_create(name="Admin", description="Admin group")
+            await group.users.add(user)
+
+            role, _ = await Role.get_or_create(name="Admin", key="ADMIN")
+            await role.users.add(user)
+
+            await user.save()
+
+            logging.info(f'Created superuser: {user}')
         else:
             logging.info(f'Superuser already exists: {user}')
 
-        print(user.password_hash)
+        print(user.roles)
+
+        return user
 
 
 async def main():

@@ -4,63 +4,26 @@ from tortoise import fields
 from tortoise.exceptions import DoesNotExist
 
 from app.applications.users.schemas import BaseUserCreate
-from app.core.base.base_models import BaseCreatedUpdatedAtModel, UUIDDBModel, BaseDBModel, CacheModelMixin
+from app.core.base.base_models import BaseCreatedUpdatedAtModel, UUIDDBModel, BaseDBModel
 from app.core.auth.utils import password
 from app.core.cache import model_cache
 
 
-class KeyData(BaseDBModel, BaseCreatedUpdatedAtModel, UUIDDBModel):
-    key = fields.CharField(max_length=128, unique=True)
-    value = fields.JSONField(null=True)
-
-    def __str__(self):
-        return f"<KeyData:{self.id} {self.key}>"
-
-
-class Permission(BaseDBModel, BaseCreatedUpdatedAtModel, UUIDDBModel):
-    description = fields.TextField(null=True)
-    name = fields.CharField(max_length=128, unique=True)
-
-    def __str__(self):
-        return f"<Permission:{self.id} {self.name}>"
-
-
-class Group(BaseDBModel, BaseCreatedUpdatedAtModel, UUIDDBModel):
-    name = fields.CharField(max_length=50, unique=True)
-    description = fields.TextField(null=True)
-    permissions = fields.JSONField(null=True)
-
-    async def add_permission(self, permission: str):
-        if not self.permissions:
-            self.permissions = []
-        if permission not in self.permissions:
-            self.permissions.append(permission)
-
-    async def remove_permission(self, permission: str):
-        if not self.permissions:
-            self.permissions = []
-        if permission in self.permissions:
-            self.permissions.remove(permission)
-
-    def __str__(self):
-        return f"<Group:{self.id} {self.name}>"
-
-
 class User(BaseDBModel, BaseCreatedUpdatedAtModel, UUIDDBModel):
-
     username = fields.CharField(max_length=20, unique=True)
     email = fields.CharField(max_length=255, unique=True)
     first_name = fields.CharField(max_length=50, null=True)
     last_name = fields.CharField(max_length=50, null=True)
+    nickname = fields.CharField(max_length=50, null=True)
     password_hash = fields.CharField(max_length=128, null=True)
     last_login = fields.DatetimeField(null=True)
     is_active = fields.BooleanField(default=True)
     is_superuser = fields.BooleanField(default=False)
     is_confirmed = fields.BooleanField(default=False)
     avatar = fields.CharField(max_length=512, null=True)
-    groups: fields.ManyToManyRelation[Group] = fields.ManyToManyField(
-        "models.Group", related_name="users", through="user_group"
-    )
+
+    groups: fields.ReverseRelation["Group"]
+    roles: fields.ReverseRelation["Role"]
 
     def full_name(self) -> str:
         if self.first_name or self.last_name:
@@ -110,6 +73,7 @@ class User(BaseDBModel, BaseCreatedUpdatedAtModel, UUIDDBModel):
 
     class PydanticMeta:
         computed = ["full_name"]
+        exclude = ("password_hash",)
 
     def __str__(self):
         return f"<User:{self.id} {self.username} {self.email}>"

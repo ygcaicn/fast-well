@@ -7,11 +7,11 @@ from app.core.auth.utils.password import get_password_hash
 from app.core.base.schemas import ResponseData
 
 from app.applications.users.models import User
-from app.applications.users.schemas import BaseUserOut, BaseUserCreate, BaseUserUpdate, BaseUserMeOut
+from app.applications.users.schemas import BaseUserOut, BaseUserCreate, BaseUserUpdate, BaseUserMeOut, BaseUserOutList
 
-from typing import List
+from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from app.core.config import settings
 
@@ -21,17 +21,36 @@ logger = logging.getLogger(__name__)
 router = APIRouter(tags=['users'])
 
 
-@router.get("/", response_model=List[BaseUserOut], status_code=200)
-async def read_users(
-    skip: int = 0,
-    limit: int = 100,
-    current_user: User = Depends(permissions_required(["users_read"])),
-):
-    """
-    Retrieve users.
-    """
-    users = await User.all().limit(limit).offset(skip)
-    return users
+@router.get("/", response_model=ResponseData[BaseUserOutList], status_code=200)
+async def read_users(page: Optional[int] = Query(title="page", ge=1, default=1),
+                     page_size: Optional[int] = Query(
+        title="page_size", le=20, default=10),
+        keywords: Optional[str] = None,
+        current_user: User = Depends(get_current_active_user)):
+    query = User.all()
+    if keywords:
+        query = query.filter(name__icontains=keywords)
+
+    total = await query.count()
+    items = await query.offset((page-1) * page_size).limit(page_size).all()
+
+    return {"data": {
+        "total": total,
+        "items": items
+    }}
+
+
+# @router.get("/", response_model=List[BaseUserOut], status_code=200)
+# async def read_users(
+#     skip: int = 0,
+#     limit: int = 100,
+#     current_user: User = Depends(permissions_required(["users_read"])),
+# ):
+#     """
+#     Retrieve users.
+#     """
+#     users = await User.all().limit(limit).offset(skip)
+#     return users
 
 
 @router.post("/", response_model=BaseUserOut, status_code=201)
@@ -85,13 +104,17 @@ async def update_user_me(
 
 
 @router.get("/me", response_model=ResponseData[BaseUserMeOut], status_code=200,)
-def read_user_me(
+async def read_user_me(
     current_user: User = Depends(get_current_active_user),
 ):
     """
     Get current user.
     """
-    return {"data": current_user}
+    roles = await current_user.roles.all()
+    user_dict = await current_user.to_dict()
+    user_dict['roles'] = [role.key for role in roles]
+
+    return {"data": user_dict}
 
 
 @router.get("/{user_id}", response_model=BaseUserOut, status_code=200)

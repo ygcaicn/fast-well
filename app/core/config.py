@@ -26,6 +26,8 @@ class Settings(BaseSettings):
 
     APPLICATIONS: List[str] = [
         'app.applications.users',
+        'app.applications.groups',
+        'app.applications.system',
     ]
 
     PROJECT_ROOT: str = _PROJECT_ROOT

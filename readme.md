@@ -19,6 +19,7 @@ pip install 'python-jose[cryptography]'
 pip install fastapi-limiter
 
 aerich init -t  app.core.init_app.TORTOISE_ORM
+aerich init-db
 aerich migrate
 aerich upgrade
 

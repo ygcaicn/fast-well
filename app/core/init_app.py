@@ -11,6 +11,7 @@ from app.core.log import DEFAULT_LOGGING
 from app.core.auth.routes import router as auth_router
 from app.applications.users.routes import router as users_router
 from app.applications.system.routes import router as system_router
+from app.applications.groups.routes import router as groups_router
 
 
 def configure_logging(log_settings: dict = None):
@@ -62,4 +63,5 @@ def register_exceptions(app: FastAPI):
 def register_routers(app: FastAPI):
     app.include_router(auth_router, prefix='/api/auth')
     app.include_router(users_router, prefix="/api/users")
+    app.include_router(groups_router, prefix="/api/groups")
     app.include_router(system_router, prefix="/api/system")

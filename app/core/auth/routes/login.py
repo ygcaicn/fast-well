@@ -8,8 +8,7 @@ from fastapi_limiter.depends import RateLimiter
 from app.applications.users.models import User
 from app.applications.users.utils import update_last_login
 from app.core.auth.deps import captcha_verify_required
-from app.core.auth.schemas import (JWTToken, Msg, JWTTokenPayload
-                                   Captcha, CaptchaVerify)
+from app.core.auth.schemas import (JWTToken, Msg, Captcha, CaptchaVerify)
 from app.core.auth.utils.contrib import (generate_password_reset_token,
                                          send_reset_password_email,
                                          verify_password_reset_token,

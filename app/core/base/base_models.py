@@ -1,7 +1,7 @@
 import uuid
-from tortoise import models
-from tortoise import fields
+from tortoise import models, fields, expressions
 from app.core.cache import model_cache
+from typing import Any, Optional, Generic, TypeVar
 
 
 class CacheModelMixin:
