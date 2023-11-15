@@ -1,3 +1,10 @@
+包含了用户管理、组管理、认证、验证码、Celery任务、异步数据库读写、Cache等功能，帮助你快速启动项目！
+
+![](./docs/auth.png)
+
+![](./docs/captcha.png)
+
+
 ## 1. 环境配置
 
 ## 1.1 pipenv
