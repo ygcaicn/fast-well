@@ -1,0 +1,27 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+fastapi = "*"
+uvicorn = {extras = ["standard"], version = "*"}
+python-jose = {extras = ["cryptography"], version = "*"}
+passlib = {extras = ["bcrypt"], version = "*"}
+pydantic = {extras = ["email"], version = "*"}
+pydantic-settings = "*"
+python-multipart = "*"
+emails = "*"
+jinja2 = "*"
+pillow = "*"
+fastapi-limiter = "*"
+aiocache = {extras = ["memcached", "redis"], version = "*"}
+celery = {extras = ["redis"], version = "*"}
+tortoise-orm = "*"
+aerich = "*"
+
+[dev-packages]
+
+[requires]
+python_version = "3.11"
+python_full_version = "3.11.5"

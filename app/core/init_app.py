@@ -1,5 +1,6 @@
 import importlib.util
 import logging
+import os
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -15,6 +16,10 @@ from app.applications.groups.routes import router as groups_router
 
 
 def configure_logging(log_settings: dict = None):
+    LOGS_ROOT = settings.LOGS_ROOT
+    if os.path.exists(LOGS_ROOT) is False:
+        os.mkdir(LOGS_ROOT)
+    
     log_settings = log_settings or DEFAULT_LOGGING
     logging.config.dictConfig(log_settings)
 
@@ -61,7 +66,8 @@ def register_exceptions(app: FastAPI):
 
 
 def register_routers(app: FastAPI):
-    app.include_router(auth_router, prefix='/api/auth')
-    app.include_router(users_router, prefix="/api/users")
-    app.include_router(groups_router, prefix="/api/groups")
-    app.include_router(system_router, prefix="/api/system")
+    app.include_router(auth_router, prefix='/auth')
+    app.include_router(users_router, prefix="/users")
+    app.include_router(groups_router, prefix="/groups")
+    app.include_router(system_router, prefix="/system")
+

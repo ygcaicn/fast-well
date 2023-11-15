@@ -32,7 +32,7 @@ class Settings(BaseSettings):
 
     PROJECT_ROOT: str = _PROJECT_ROOT
     BASE_DIR: str = _BASE_DIR
-    LOGS_ROOT: str = os.path.join(BASE_DIR, "app/logs")
+    LOGS_ROOT: str = os.path.join(BASE_DIR, "logs")
 
     SECRET_KEY: str = os.environ.get("SECRET_KEY")
     JWT_ALGORITHM: str = 'HS25'
@@ -49,8 +49,6 @@ class Settings(BaseSettings):
     CORS_ALLOW_CREDENTIALS: bool = True
     CORS_ALLOW_METHODS: List[str] = ["*"]
     CORS_ALLOW_HEADERS: List[str] = ["*"]
-
-    LOGS_ROOT: str = os.path.join(BASE_DIR, "app/logs")
 
     CAPTCHA_FONT_PATH: str = os.path.join(
         BASE_DIR, "app/templates/RubikWetPaint-Regular.ttf")
